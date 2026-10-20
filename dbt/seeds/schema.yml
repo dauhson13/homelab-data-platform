@@ -1,0 +1,5 @@
+version: 2
+
+seeds:
+  - name: workloads
+    description: Workloads read from the Kubernetes manifests by scripts/build_inventory.py.

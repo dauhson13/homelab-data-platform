@@ -1,0 +1,20 @@
+version: 2
+
+models:
+  - name: namespace_summary
+    description: Workloads and requested resources per namespace.
+    columns:
+      - name: namespace
+        data_tests: [unique, not_null]
+      - name: workloads
+        data_tests: [not_null]
+  - name: image_inventory
+    description: How widely each container image is used.
+    columns:
+      - name: image
+        data_tests: [unique, not_null]
+  - name: largest_workloads
+    description: The 15 running workloads that request the most memory.
+    columns:
+      - name: memory_rank
+        data_tests: [unique, not_null]

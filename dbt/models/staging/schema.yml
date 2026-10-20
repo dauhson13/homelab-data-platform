@@ -1,0 +1,17 @@
+version: 2
+
+models:
+  - name: stg_workloads
+    description: One row per Deployment, StatefulSet or DaemonSet in the manifests.
+    columns:
+      - name: name
+        data_tests: [not_null]
+      - name: namespace
+        data_tests: [not_null]
+      - name: kind
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [Deployment, StatefulSet, DaemonSet]
+      - name: replicas
+        data_tests: [not_null]

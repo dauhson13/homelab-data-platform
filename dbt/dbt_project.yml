@@ -1,0 +1,31 @@
+name: homelab
+version: "1.0.0"
+config-version: 2
+profile: homelab
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+clean-targets: ["target", "dbt_packages"]
+
+seeds:
+  homelab:
+    workloads:
+      +column_types:
+        namespace: varchar
+        name: varchar
+        kind: varchar
+        replicas: integer
+        image: varchar
+        image_tag: varchar
+        containers: integer
+        memory_request_mb: integer
+        cpu_request_m: integer
+        exposed: integer
+
+models:
+  homelab:
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table
