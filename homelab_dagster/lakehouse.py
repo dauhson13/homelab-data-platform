@@ -55,7 +55,7 @@ def select_list(cur, src, schema, table):
     return ", ".join(f"json_format({quote(c)}) AS {quote(c)}" if t == "json" else quote(c) for c, t in cols)
 
 
-PORTFOLIO_ENDPOINTS = ["projects", "education", "work", "skills", "blog", "courses"]
+PORTFOLIO_ENDPOINTS = ["projects", "education", "work", "blog", "courses"]
 
 
 def values_sql(rows):
@@ -73,14 +73,17 @@ def sync_portfolio(cur, log=print):
     cur.fetchall()
     copied = []
     for name in PORTFOLIO_ENDPOINTS:
-        req = urllib.request.Request(f"{base}/{name}", headers={"User-Agent": "homelab-data-platform/0.1"})
-        rows = json.load(urllib.request.urlopen(req, timeout=30))
-        if not rows:
-            continue
-        cur.execute(f"CREATE OR REPLACE TABLE {TARGET}.raw_portfolio.{name} AS {values_sql(rows)}")
-        cur.fetchall()
-        copied.append(f"portfolio.{name}")
-        log(f"copied portfolio.{name}")
+        try:
+            req = urllib.request.Request(f"{base}/{name}", headers={"User-Agent": "homelab-data-platform/0.1"})
+            rows = json.load(urllib.request.urlopen(req, timeout=30))
+            if not rows:
+                continue
+            cur.execute(f"CREATE OR REPLACE TABLE {TARGET}.raw_portfolio.{name} AS {values_sql(rows)}")
+            cur.fetchall()
+            copied.append(f"portfolio.{name}")
+            log(f"copied portfolio.{name}")
+        except Exception as exc:
+            log(f"portfolio.{name}: {exc}")
     return copied
 
 
@@ -89,11 +92,7 @@ def sync(log=print):
     conn = connect()
     cur = conn.cursor()
     copied, failed = [], []
-    try:
-        copied += sync_portfolio(cur, log)
-    except Exception as exc:
-        failed.append(("portfolio", str(exc)[:200]))
-        log(f"portfolio: {exc}")
+    copied += sync_portfolio(cur, log)
     for src in SOURCES:
         dest_schema = f"raw_{src}"
         try:
