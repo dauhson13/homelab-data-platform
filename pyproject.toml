@@ -10,6 +10,7 @@ dependencies = [
     "dbt-duckdb>=1.9",
     "dbt-trino>=1.9",
     "pyyaml>=6",
+    "trino>=0.330",
 ]
 
 [project.optional-dependencies]
