@@ -61,7 +61,7 @@ PORTFOLIO_ENDPOINTS = ["projects", "education", "work", "blog", "courses"]
 def values_sql(rows):
     """CREATE TABLE ... AS SELECT from a list of dicts; every column is written as text."""
     cols = sorted({k for r in rows for k, v in r.items() if v is None or isinstance(v, (str, int, float, bool))})
-    lit = lambda v: "NULL" if v is None else "'" + str(v).replace("'", "''") + "'"
+    lit = lambda v: "CAST(NULL AS VARCHAR)" if v is None else "'" + str(v).replace("'", "''") + "'"
     body = ", ".join("(" + ", ".join(lit(r.get(c)) for c in cols) + ")" for r in rows)
     return f"SELECT * FROM (VALUES {body}) AS t({', '.join(quote(c) for c in cols)})"
 

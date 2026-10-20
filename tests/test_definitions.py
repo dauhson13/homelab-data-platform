@@ -59,4 +59,4 @@ def test_portfolio_rows_become_a_values_select():
     from homelab_dagster import lakehouse
 
     sql = lakehouse.values_sql([{"id": 1, "title": "O'Neil", "tags": ["x"]}, {"id": 2, "title": None}])
-    assert sql == "SELECT * FROM (VALUES ('1', 'O''Neil'), ('2', NULL)) AS t(\"id\", \"title\")"
+    assert sql == "SELECT * FROM (VALUES ('1', 'O''Neil'), ('2', CAST(NULL AS VARCHAR))) AS t(\"id\", \"title\")"
