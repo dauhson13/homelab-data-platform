@@ -74,4 +74,3 @@ dbt build --profiles-dir dbt --project-dir dbt
 pytest
 ```
 
-CI runs both on every push.
