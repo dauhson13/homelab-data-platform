@@ -1,0 +1,15 @@
+version: 2
+
+models:
+  - name: portfolio_tech_usage
+    columns:
+      - name: technology
+        tests: [not_null, unique]
+  - name: dagster_run_summary
+    columns:
+      - name: runs
+        tests: [not_null]
+  - name: lakehouse_inventory
+    columns:
+      - name: source_schema
+        tests: [not_null, unique]

@@ -1,0 +1,15 @@
+version: 2
+
+sources:
+  - name: raw_portfolio
+    database: iceberg
+    schema: raw_portfolio
+    tables: [{name: projects}, {name: blog}]
+  - name: raw_postgres_dagster
+    database: iceberg
+    schema: raw_postgres_dagster
+    tables: [{name: public__runs}]
+  - name: raw_postgres_n8n
+    database: iceberg
+    schema: raw_postgres_n8n
+    tables: [{name: public__execution_entity}, {name: public__workflow_entity}]

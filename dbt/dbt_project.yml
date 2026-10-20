@@ -29,3 +29,6 @@ models:
       +materialized: view
     marts:
       +materialized: table
+    lakehouse:
+      +materialized: table
+      +enabled: "{{ target.type == 'trino' }}"

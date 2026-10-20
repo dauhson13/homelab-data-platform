@@ -7,10 +7,13 @@ homelab:
       threads: 4
     trino:
       type: trino
-      method: none
+      method: ldap
       user: "{{ env_var('TRINO_USER', 'dbt') }}"
-      host: "{{ env_var('TRINO_HOST') }}"
-      port: "{{ env_var('TRINO_PORT', '8080') | as_number }}"
+      password: "{{ env_var('LAKEHOUSE_PASSWORD', '') }}"
+      host: "{{ env_var('LAKEHOUSE_HOST') }}"
+      port: "{{ env_var('LAKEHOUSE_PORT', '8443') | as_number }}"
+      http_scheme: https
+      cert: false
       database: "{{ env_var('TRINO_CATALOG', 'iceberg') }}"
       schema: "{{ env_var('TRINO_SCHEMA', 'homelab') }}"
       threads: 2
