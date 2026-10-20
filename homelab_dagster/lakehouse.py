@@ -16,6 +16,13 @@ SOURCES = [
 ]
 SKIP_SCHEMAS = {"information_schema", "pg_catalog", "sys", "INFORMATION_SCHEMA", "performance_schema", "mysql"}
 TARGET = "iceberg"
+# Login, credential and session tables stay out of the analytics copy.
+SENSITIVE = ("user", "credential", "secret", "session", "token", "password", "auth", "api_key", "setting", "login")
+
+
+def is_sensitive(table):
+    name = table.lower()
+    return any(word in name for word in SENSITIVE)
 
 
 def connect():
@@ -40,10 +47,10 @@ def quote(name):
 
 
 def select_list(cur, src, schema, table):
-    """Column list for the copy; Iceberg has no json type, so json columns are cast to text."""
+    """Column list for the copy; Iceberg has no json type, so json columns are written as text."""
     cols = _rows(cur, f"SELECT column_name, data_type FROM {src}.information_schema.columns "
                       f"WHERE table_schema = '{schema}' AND table_name = '{table}' ORDER BY ordinal_position")
-    return ", ".join(f"CAST({quote(c)} AS VARCHAR) AS {quote(c)}" if t == "json" else quote(c) for c, t in cols)
+    return ", ".join(f"json_format({quote(c)}) AS {quote(c)}" if t == "json" else quote(c) for c, t in cols)
 
 
 def sync(log=print):
@@ -63,7 +70,7 @@ def sync(log=print):
             log(f"{src}: cannot list tables: {exc}")
             continue
         for schema, table in tables:
-            if schema in SKIP_SCHEMAS:
+            if schema in SKIP_SCHEMAS or is_sensitive(table):
                 continue
             dest = f"{TARGET}.{dest_schema}.{quote(schema + '__' + table)}"
             try:

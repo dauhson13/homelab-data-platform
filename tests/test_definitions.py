@@ -45,4 +45,11 @@ def test_json_columns_are_cast_for_iceberg():
         def fetchall(self):
             return [("id", "integer"), ("data", "json")]
 
-    assert lakehouse.select_list(Cur(), "src", "public", "t") == '"id", CAST("data" AS VARCHAR) AS "data"'
+    assert lakehouse.select_list(Cur(), "src", "public", "t") == '"id", json_format("data") AS "data"'
+
+
+def test_login_and_credential_tables_are_skipped():
+    from homelab_dagster import lakehouse
+
+    assert all(lakehouse.is_sensitive(n) for n in ["core_user", "credentials_entity", "core_session", "auth_identity", "user"])
+    assert not lakehouse.is_sensitive("workflow_entity")
