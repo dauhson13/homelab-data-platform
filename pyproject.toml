@@ -1,0 +1,23 @@
+[project]
+name = "homelab-data-platform"
+version = "0.1.0"
+description = "dbt models and a Dagster project for homelab workload data"
+requires-python = ">=3.10"
+dependencies = [
+    "dagster>=1.13",
+    "dagster-dbt>=0.29",
+    "dbt-core>=1.10",
+    "dbt-duckdb>=1.9",
+    "dbt-trino>=1.9",
+    "pyyaml>=6",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "dagster-webserver>=1.13"]
+
+[tool.setuptools.packages.find]
+include = ["homelab_dagster*"]
+
+[tool.dagster]
+module_name = "homelab_dagster.definitions"
+code_location_name = "homelab"
