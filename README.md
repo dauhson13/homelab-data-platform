@@ -57,11 +57,26 @@ The `trino` target in `dbt/profiles.yml` reads its connection from environment v
 
 ```bash
 export DBT_TARGET=trino
-export TRINO_HOST=trino.example.internal
+export LAKEHOUSE_HOST=trino.example.internal
+export TRINO_USER=dbt
+export LAKEHOUSE_PASSWORD=...
 export TRINO_CATALOG=iceberg
 export TRINO_SCHEMA=homelab
 dbt build --profiles-dir .
 ```
+
+The models under `dbt/models/lakehouse` only build on the Trino target. They read the Iceberg tables described below.
+
+## Copy databases into the lakehouse
+
+`homelab_dagster/lakehouse.py` reads every table from the databases that Trino can see (PostgreSQL, MySQL, SQL Server, MongoDB) plus the public content of a portfolio API, and rewrites them as Iceberg tables in `iceberg.raw_<catalog>`.
+
+- It is a full refresh, except for tables listed in `INCREMENTAL`, which load only rows past a key.
+- Tables whose names suggest logins, credentials or sessions are skipped.
+- JSON columns are written as text, because Iceberg has no JSON type.
+- Each run adds a row to `iceberg.ops.copy_runs` and the process exits non-zero if any table failed.
+
+It runs as the `lakehouse_raw_copy` Dagster asset on a daily schedule, or directly with `python -m homelab_dagster.lakehouse`.
 
 ## Run it on the cluster
 
