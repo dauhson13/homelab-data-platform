@@ -73,7 +73,8 @@ def sync_portfolio(cur, log=print):
     cur.fetchall()
     copied = []
     for name in PORTFOLIO_ENDPOINTS:
-        rows = json.load(urllib.request.urlopen(f"{base}/{name}", timeout=30))
+        req = urllib.request.Request(f"{base}/{name}", headers={"User-Agent": "homelab-data-platform/0.1"})
+        rows = json.load(urllib.request.urlopen(req, timeout=30))
         if not rows:
             continue
         cur.execute(f"CREATE OR REPLACE TABLE {TARGET}.raw_portfolio.{name} AS {values_sql(rows)}")
