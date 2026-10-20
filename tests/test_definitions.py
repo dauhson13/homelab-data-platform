@@ -53,3 +53,10 @@ def test_login_and_credential_tables_are_skipped():
 
     assert all(lakehouse.is_sensitive(n) for n in ["core_user", "credentials_entity", "core_session", "auth_identity", "user"])
     assert not lakehouse.is_sensitive("workflow_entity")
+
+
+def test_portfolio_rows_become_a_values_select():
+    from homelab_dagster import lakehouse
+
+    sql = lakehouse.values_sql([{"id": 1, "title": "O'Neil", "tags": ["x"]}, {"id": 2, "title": None}])
+    assert sql == "SELECT * FROM (VALUES ('1', 'O''Neil'), ('2', NULL)) AS t(\"id\", \"title\")"

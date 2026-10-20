@@ -3,7 +3,9 @@
 Each source catalog (postgres, sandbox_mysql, ...) becomes an Iceberg schema
 named raw_<catalog>, and each table is a full refresh of the source table.
 """
+import json
 import os
+import urllib.request
 import warnings
 
 import trino
@@ -53,11 +55,44 @@ def select_list(cur, src, schema, table):
     return ", ".join(f"json_format({quote(c)}) AS {quote(c)}" if t == "json" else quote(c) for c, t in cols)
 
 
+PORTFOLIO_ENDPOINTS = ["projects", "education", "work", "skills", "blog", "courses"]
+
+
+def values_sql(rows):
+    """CREATE TABLE ... AS SELECT from a list of dicts; every column is written as text."""
+    cols = sorted({k for r in rows for k, v in r.items() if v is None or isinstance(v, (str, int, float, bool))})
+    lit = lambda v: "NULL" if v is None else "'" + str(v).replace("'", "''") + "'"
+    body = ", ".join("(" + ", ".join(lit(r.get(c)) for c in cols) + ")" for r in rows)
+    return f"SELECT * FROM (VALUES {body}) AS t({', '.join(quote(c) for c in cols)})"
+
+
+def sync_portfolio(cur, log=print):
+    """Public portfolio content (SQLite in the app) copied from its public API."""
+    base = os.environ.get("PORTFOLIO_API", "https://dauhson.com/api")
+    cur.execute(f"CREATE SCHEMA IF NOT EXISTS {TARGET}.raw_portfolio")
+    cur.fetchall()
+    copied = []
+    for name in PORTFOLIO_ENDPOINTS:
+        rows = json.load(urllib.request.urlopen(f"{base}/{name}", timeout=30))
+        if not rows:
+            continue
+        cur.execute(f"CREATE OR REPLACE TABLE {TARGET}.raw_portfolio.{name} AS {values_sql(rows)}")
+        cur.fetchall()
+        copied.append(f"portfolio.{name}")
+        log(f"copied portfolio.{name}")
+    return copied
+
+
 def sync(log=print):
     """Full refresh of every source table. Returns (copied, failed) lists."""
     conn = connect()
     cur = conn.cursor()
     copied, failed = [], []
+    try:
+        copied += sync_portfolio(cur, log)
+    except Exception as exc:
+        failed.append(("portfolio", str(exc)[:200]))
+        log(f"portfolio: {exc}")
     for src in SOURCES:
         dest_schema = f"raw_{src}"
         try:
