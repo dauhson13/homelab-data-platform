@@ -60,3 +60,9 @@ def test_portfolio_rows_become_a_values_select():
 
     sql = lakehouse.values_sql([{"id": 1, "title": "O'Neil", "tags": ["x"]}, {"id": 2, "title": None}])
     assert sql == "SELECT * FROM (VALUES ('1', 'O''Neil'), ('2', CAST(NULL AS VARCHAR))) AS t(\"id\", \"title\")"
+
+
+def test_incremental_tables_are_configured_by_key():
+    from homelab_dagster import lakehouse
+
+    assert lakehouse.INCREMENTAL["postgres_metabase.public.task_history"] == "id"

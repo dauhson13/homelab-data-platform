@@ -22,6 +22,10 @@ TARGET = "iceberg"
 SENSITIVE = ("user", "credential", "secret", "session", "token", "password", "auth", "api_key", "setting", "login")
 
 
+# Append-only tables loaded by watermark instead of a full refresh: "catalog.schema.table" -> key column.
+INCREMENTAL = {"postgres_metabase.public.task_history": "id"}
+
+
 def is_sensitive(table):
     name = table.lower()
     return any(word in name for word in SENSITIVE)
@@ -64,6 +68,22 @@ def values_sql(rows):
     lit = lambda v: "CAST(NULL AS VARCHAR)" if v is None else "'" + str(v).replace("'", "''") + "'"
     body = ", ".join("(" + ", ".join(lit(r.get(c)) for c in cols) + ")" for r in rows)
     return f"SELECT * FROM (VALUES {body}) AS t({', '.join(quote(c) for c in cols)})"
+
+
+def _exists(cur, schema, table):
+    return bool(_rows(cur, f"SELECT 1 FROM {TARGET}.information_schema.tables "
+                           f"WHERE table_schema = '{schema}' AND table_name = '{table}'"))
+
+
+def log_run(cur, copied, failed):
+    """One row per run in iceberg.ops.copy_runs, so a failing night is visible in a query or dashboard."""
+    cur.execute(f"CREATE SCHEMA IF NOT EXISTS {TARGET}.ops")
+    cur.fetchall()
+    cur.execute(f"CREATE TABLE IF NOT EXISTS {TARGET}.ops.copy_runs "
+                f"(run_at timestamp(6) with time zone, tables_copied integer, tables_failed integer)")
+    cur.fetchall()
+    cur.execute(f"INSERT INTO {TARGET}.ops.copy_runs VALUES (current_timestamp, {len(copied)}, {len(failed)})")
+    cur.fetchall()
 
 
 def sync_portfolio(cur, log=print):
@@ -109,14 +129,21 @@ def sync(log=print):
                 continue
             dest = f"{TARGET}.{dest_schema}.{quote(schema + '__' + table)}"
             try:
-                cur.execute(f"CREATE OR REPLACE TABLE {dest} AS "
-                            f"SELECT {select_list(cur, src, schema, table)} FROM {src}.{quote(schema)}.{quote(table)}")
+                key = INCREMENTAL.get(f"{src}.{schema}.{table}")
+                if key and _exists(cur, dest_schema, f"{schema}__{table}"):
+                    last = _rows(cur, f"SELECT coalesce(max({quote(key)}), 0) FROM {dest}")[0][0]
+                    cur.execute(f"INSERT INTO {dest} SELECT {select_list(cur, src, schema, table)} "
+                                f"FROM {src}.{quote(schema)}.{quote(table)} WHERE {quote(key)} > {int(last)}")
+                else:
+                    cur.execute(f"CREATE OR REPLACE TABLE {dest} AS "
+                                f"SELECT {select_list(cur, src, schema, table)} FROM {src}.{quote(schema)}.{quote(table)}")
                 cur.fetchall()
                 copied.append(f"{src}.{schema}.{table}")
                 log(f"copied {src}.{schema}.{table}")
             except Exception as exc:
                 failed.append((f"{src}.{schema}.{table}", str(exc)[:200]))
                 log(f"{src}.{schema}.{table}: {exc}")
+    log_run(cur, copied, failed)
     return copied, failed
 
 
@@ -141,4 +168,4 @@ except ImportError:  # plain-script run without dagster installed
 if __name__ == "__main__":
     ok, bad = sync()
     print(f"copied {len(ok)} tables, {len(bad)} failed")
-    raise SystemExit(1 if bad and not ok else 0)
+    raise SystemExit(1 if bad else 0)
