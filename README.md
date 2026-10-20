@@ -1,5 +1,7 @@
 # homelab-data-platform
 
+![Databases copied nightly into Iceberg tables, queried with Trino](docs/lakehouse.gif)
+
 A dbt project and a Dagster project that model the workloads running in my homelab Kubernetes cluster: what runs in each namespace, how much memory and CPU it asks for, and which container images are used where.
 
 The source data is a CSV built from the cluster's Kubernetes manifests (`scripts/build_inventory.py`). Only names, sizes and image repositories go in it, with no hostnames, addresses or secrets. Client namespaces are skipped.
