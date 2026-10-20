@@ -1,0 +1,20 @@
+# Add under dagster-user-deployments in the Dagster Helm values.
+deployments:
+  - name: homelab
+    image:
+      repository: your-registry.example.com/homelab-data-platform
+      tag: latest
+      pullPolicy: Always
+    dagsterApiGrpcArgs:
+      - "-m"
+      - "homelab_dagster.definitions"
+    port: 3030
+    env:
+      - name: DBT_TARGET
+        value: trino
+      - name: TRINO_HOST
+        value: trino.data.svc.cluster.local
+      - name: TRINO_CATALOG
+        value: iceberg
+      - name: TRINO_SCHEMA
+        value: homelab
